@@ -1,7 +1,7 @@
 {
-  "name": "@slack/bolt",
+  "name": "@lifesize/bolt",
   "version": "2.4.1",
-  "description": "A framework for building Slack apps, fast.",
+  "description": "A framework for building Slack apps, fast. Modified for Lifesize.",
   "author": "Slack Technologies, Inc.",
   "license": "MIT",
   "keywords": [
@@ -36,7 +36,10 @@
     "coverage": "codecov",
     "watch": "npx nodemon --watch 'src' --ext 'ts' --exec npm run build"
   },
-  "repository": "slackapi/bolt",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lifesize/bolt-js.git"
+  },
   "homepage": "https://slack.dev/bolt-js",
   "bugs": {
     "url": "https://github.com/slackapi/bolt-js/issues"
