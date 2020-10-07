@@ -22,6 +22,7 @@ import {
   MessageShortcut,
   BlockElementAction,
   SlackViewAction,
+  Video,
 } from '../types';
 import { ActionConstraints, ViewConstraints, ShortcutConstraints } from '../App';
 import { ContextMissingPropertyError } from '../errors';
@@ -64,6 +65,20 @@ export const onlyShortcuts: Middleware<AnyMiddlewareArgs & { shortcut?: SlackSho
 export const onlyCommands: Middleware<AnyMiddlewareArgs & { command?: SlashCommand }> = async ({ command, next }) => {
   // Filter out any non-commands
   if (command === undefined) {
+    return;
+  }
+
+  // It matches so we should continue down this middleware listener chain
+  // TODO: remove the non-null assertion operator
+  await next!();
+};
+
+/**
+ * Middleware that filters out any event that isn't a video
+ */
+export const onlyVideos: Middleware<AnyMiddlewareArgs & { video?: Video }> = async ({ video, next }) => {
+  // Filter out any non-commands
+  if (video === undefined) {
     return;
   }
 

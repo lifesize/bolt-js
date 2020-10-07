@@ -8,45 +8,47 @@ import axios, { AxiosInstance } from 'axios';
 import ExpressReceiver, { ExpressReceiverOptions } from './ExpressReceiver';
 import {
   ignoreSelf as ignoreSelfMiddleware,
-  onlyActions,
-  matchConstraints,
-  onlyCommands,
   matchCommandName,
-  onlyOptions,
-  onlyShortcuts,
-  onlyEvents,
+  matchConstraints,
   matchEventType,
   matchMessage,
+  onlyActions,
+  onlyCommands,
+  onlyEvents,
+  onlyOptions,
+  onlyShortcuts,
+  onlyVideos,
   onlyViewActions,
 } from './middleware/builtin';
 import { processMiddleware } from './middleware/process';
-import { ConversationStore, conversationContext, MemoryStore } from './conversation-store';
+import { conversationContext, ConversationStore, MemoryStore } from './conversation-store';
 import { WorkflowStep } from './WorkflowStep';
 import {
-  Middleware,
+  AckFn,
   AnyMiddlewareArgs,
+  BlockAction,
+  Context,
+  InteractiveMessage,
+  Middleware,
+  OptionsSource,
+  Receiver,
+  ReceiverEvent,
+  RespondArguments,
+  RespondFn,
+  SayFn,
+  SlackAction,
   SlackActionMiddlewareArgs,
   SlackCommandMiddlewareArgs,
   SlackEventMiddlewareArgs,
   SlackOptionsMiddlewareArgs,
-  SlackShortcutMiddlewareArgs,
-  SlackViewMiddlewareArgs,
-  SlackAction,
   SlackShortcut,
-  Context,
-  SayFn,
-  AckFn,
-  RespondFn,
-  OptionsSource,
-  BlockAction,
-  InteractiveMessage,
+  SlackShortcutMiddlewareArgs,
+  SlackVideoMiddlewareArgs,
   SlackViewAction,
-  Receiver,
-  ReceiverEvent,
-  RespondArguments,
+  SlackViewMiddlewareArgs,
 } from './types';
-import { IncomingEventType, getTypeAndConversation, assertNever } from './helpers';
-import { CodedError, asCodedError, AppInitializationError, MultipleListenerError } from './errors';
+import { assertNever, getTypeAndConversation, IncomingEventType } from './helpers';
+import { AppInitializationError, asCodedError, CodedError, MultipleListenerError } from './errors';
 // eslint-disable-next-line import/order
 import allSettled = require('promise.allsettled'); // eslint-disable-line @typescript-eslint/no-require-imports
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -445,6 +447,10 @@ export default class App {
     this.listeners.push([onlyCommands, matchCommandName(commandName), ...listeners] as Middleware<AnyMiddlewareArgs>[]);
   }
 
+  public video(...listeners: Middleware<SlackVideoMiddlewareArgs>[]): void {
+    this.listeners.push([onlyVideos, ...listeners] as Middleware<AnyMiddlewareArgs>[]);
+  }
+
   public options<Source extends OptionsSource = OptionsSource>(
     actionId: string | RegExp,
     ...listeners: Middleware<SlackOptionsMiddlewareArgs<Source>>[]
@@ -603,6 +609,9 @@ export default class App {
     } else if (type === IncomingEventType.Shortcut) {
       const shortcutListenerArgs = listenerArgs as SlackShortcutMiddlewareArgs;
       shortcutListenerArgs.shortcut = shortcutListenerArgs.payload;
+    } else if (type === IncomingEventType.Video) {
+      const videoListenerArgs = listenerArgs as SlackVideoMiddlewareArgs;
+      videoListenerArgs.video = videoListenerArgs.payload;
     }
 
     // Set say() utility
@@ -715,8 +724,9 @@ function buildSource(
   // tslint:disable:max-line-length
   const source: AuthorizeSourceData = {
     teamId:
-      type === IncomingEventType.Event || type === IncomingEventType.Command
-        ? ((body as (SlackEventMiddlewareArgs | SlackCommandMiddlewareArgs)['body']).team_id as string)
+      type === IncomingEventType.Event || type === IncomingEventType.Command || type === IncomingEventType.Video
+        ? ((body as (SlackEventMiddlewareArgs | SlackCommandMiddlewareArgs | SlackVideoMiddlewareArgs)['body'])
+            .team_id as string)
         : type === IncomingEventType.Action ||
           type === IncomingEventType.Options ||
           type === IncomingEventType.ViewAction ||
@@ -729,8 +739,9 @@ function buildSource(
           )['body']).team.id as string)
         : assertNever(type),
     enterpriseId:
-      type === IncomingEventType.Event || type === IncomingEventType.Command
-        ? ((body as (SlackEventMiddlewareArgs | SlackCommandMiddlewareArgs)['body']).enterprise_id as string)
+      type === IncomingEventType.Event || type === IncomingEventType.Command || type === IncomingEventType.Video
+        ? ((body as (SlackEventMiddlewareArgs | SlackCommandMiddlewareArgs | SlackVideoMiddlewareArgs)['body'])
+            .enterprise_id as string)
         : type === IncomingEventType.Action ||
           type === IncomingEventType.Options ||
           type === IncomingEventType.ViewAction ||
@@ -761,8 +772,8 @@ function buildSource(
           type === IncomingEventType.Shortcut
         ? ((body as (SlackActionMiddlewareArgs | SlackOptionsMiddlewareArgs | SlackViewMiddlewareArgs)['body']).user
             .id as string)
-        : type === IncomingEventType.Command
-        ? ((body as SlackCommandMiddlewareArgs['body']).user_id as string)
+        : type === IncomingEventType.Command || type === IncomingEventType.Video
+        ? ((body as SlackCommandMiddlewareArgs['body'] | SlackVideoMiddlewareArgs['body']).user_id as string)
         : undefined,
     conversationId: channelId,
   };

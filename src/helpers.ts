@@ -7,6 +7,7 @@ import {
   SlackAction,
   OptionsSource,
   MessageShortcut,
+  SlackVideoMiddlewareArgs,
 } from './types';
 
 /**
@@ -19,6 +20,7 @@ export enum IncomingEventType {
   Options,
   ViewAction,
   Shortcut,
+  Video,
 }
 
 /**
@@ -63,6 +65,12 @@ export function getTypeAndConversation(body: any): { type?: IncomingEventType; c
   if (body.type === 'shortcut') {
     return {
       type: IncomingEventType.Shortcut,
+    };
+  }
+  if (body.type === 'video') {
+    return {
+      type: IncomingEventType.Video,
+      conversationId: (body as SlackVideoMiddlewareArgs['body']).channel_id,
     };
   }
   if (body.type === 'message_action') {
